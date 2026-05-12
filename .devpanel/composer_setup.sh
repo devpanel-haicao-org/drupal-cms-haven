@@ -219,7 +219,9 @@ composer config repositories.codemirror '{
         "license": "MIT"
     }
 }'
-composer config repositories.devpanel_marketplace_bar vcs "https://github.com/devpanel-haicao/devpanel_marketplace_bar.git"
+# Clear cache to avoid old SSH metadata.
+composer clear-cache
+composer config repositories.marketplace_bar_https vcs "https://github.com/devpanel-haicao/devpanel_marketplace_bar.git"
 
 # Add core dependencies, Drush, Haven, and Marketplace Bar.
 # We explicitly add drupal/cva and drupal/sdc_display to satisfy Haven's requirements.
