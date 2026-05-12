@@ -94,9 +94,16 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  echo 'Install Drupal base system.'
-  time drush -n si minimal
+  # Step 1: Install the drupal_cms base system using the install script.
+  # This runs the drupal_cms installation profile which sets up all
+  # foundation modules. Recipe application is skipped (handled below).
+  echo 'Install Drupal CMS base system.'
+  while [ -z "$(drush sget recipe_installer_kit.profile_modules_installed 2> /dev/null)" ]; do
+    time .devpanel/install
+  done
+  drush sdel recipe_installer_kit.profile_modules_installed
 
+  # Step 2: Apply recipes programmatically (replaces the UI template picker).
   # Get the contrib recipes path using the custom drush command.
   CONTRIB_RECIPES_PATH=$(drush crp)
   echo "Contrib recipes path: $CONTRIB_RECIPES_PATH"
