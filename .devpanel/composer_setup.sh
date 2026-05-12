@@ -3,18 +3,17 @@ set -eu -o pipefail
 cd $APP_ROOT
 
 # Create required composer.json and composer.lock files.
-# Use drupal/cms as the base project.
-composer create-project --no-install ${PROJECT:=drupal/cms}
-cp -r "${PROJECT#*/}"/* ./
-rm -rf "${PROJECT#*/}" AGENTS.md patches.lock.json
+# Use drupal/recommended-project (Standard Drupal) to avoid the 
+# Drupal CMS interactive installer and redirect middleware.
+composer create-project --no-install ${PROJECT:=drupal/recommended-project}:^11
+cp -r ${PROJECT#*/}/* ./
+rm -rf ${PROJECT#*/}
 
 # Programmatically fix Composer 2.2 allow-plugins to avoid errors.
 composer config --no-plugins allow-plugins.cweagans/composer-patches true
 
-# Scaffold patches and settings.php.
+# Scaffold settings.php.
 composer config -jm extra.drupal-scaffold.file-mapping '{
-    "patches.json": false,
-    "patches.lock.json": false,
     "[web-root]/sites/default/settings.php": {
         "path": "web/core/assets/scaffold/files/default.settings.php",
         "overwrite": false
@@ -23,7 +22,7 @@ composer config -jm extra.drupal-scaffold.file-mapping '{
 composer config scripts.post-drupal-scaffold-cmd \
     'cd web/sites/default && test -z "$(grep '\''include \$devpanel_settings;'\'' settings.php)" && patch -Np1 -r /dev/null < $APP_ROOT/.devpanel/drupal-settings.patch || :'
 
-# Set minimum stability to allow beta modules (required by drupal/haven for webform).
+# Allow beta/dev modules (required for Haven dependencies like Webform).
 composer config minimum-stability beta
 composer config prefer-stable true
 
@@ -222,13 +221,17 @@ composer config repositories.codemirror '{
 }'
 composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpanel-haicao/devpanel_marketplace_bar.git"
 
-# Add Drush, Webform libraries, Haven, and Marketplace Bar.
+# Add core dependencies, Drush, Haven, and Marketplace Bar.
+# We explicitly add drupal/cva and drupal/sdc_display to satisfy Haven's requirements.
 composer require -n --no-update \
     drush/drush \
-    codemirror/codemirror \
     cweagans/composer-patches \
     devpanel/devpanel_marketplace_bar:dev-main \
     drupal/haven \
+    drupal/cva \
+    drupal/sdc_display \
+    drupal/webform \
+    codemirror/codemirror \
     jquery/inputmask \
     jquery/intl-tel-input \
     jquery/rateit \
