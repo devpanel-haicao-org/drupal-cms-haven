@@ -126,6 +126,10 @@ if [ -z "$(drush status --field=db-status)" ]; then
 
   drush -n cset system.site name 'Drupal CMS Haven'
 
+  # Mark installation as complete so the install redirect middleware
+  # (patch #3495988) does not redirect all HTML requests to /core/install.php.
+  drush sset install_task done
+
   echo
   echo 'Tell Automatic Updates about patches.'
   drush -n cset --input-format=yaml package_manager.settings additional_trusted_composer_plugins '["cweagans/composer-patches"]'
