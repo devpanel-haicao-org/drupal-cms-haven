@@ -1,0 +1,8 @@
+{
+    "patches": {
+        "drupal/core": {
+            "#3495988: Add redirect for incomplete install": "https://git.drupalcode.org/project/drupal/-/merge_requests/10680.diff",
+            "#3499225: Fix recipe command ignoring dependencies": "https://git.drupalcode.org/project/drupal/-/commit/12031d11461bd2fddcb9052659af947be0a9defe.patch"
+        }
+    }
+}

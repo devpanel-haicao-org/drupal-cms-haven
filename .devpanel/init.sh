@@ -72,20 +72,36 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Step 1: Install Drupal with minimal profile (fast, non-interactive).
-  echo 'Install Drupal (minimal profile).'
-  time drush -n si minimal --site-name='Drupal CMS Haven'
+  # Step 1: Run the installer in a loop until complete.
+  # This handles the full Drupal CMS installation + Haven recipe application.
+  echo 'Install Drupal CMS with Haven template (running tasks...)'
+  INSTALL_COUNTER=0
+  while true; do
+    INSTALL_COUNTER=$((INSTALL_COUNTER + 1))
+    echo "  Install task step $INSTALL_COUNTER..."
+    
+    # We use || true because individual steps might return non-zero if they 
+    # expect a redirect, but we care about the install_task state.
+    .devpanel/install 2>&1 || true
 
-  # Step 2: Apply the haven recipe (installs theme + demo content + dependencies).
+    # Check if installation is complete.
+    TASK=$(drush sget install_task 2>/dev/null || echo "unknown")
+    if [ "$TASK" = "done" ]; then
+      echo "  Installation complete after $INSTALL_COUNTER steps."
+      break
+    fi
+
+    # Safety: prevent infinite loops.
+    if [ $INSTALL_COUNTER -ge 100 ]; then
+      echo "  Warning: Installation did not complete after $INSTALL_COUNTER steps (status: $TASK)."
+      break
+    fi
+  done
+
   echo
-  echo 'Apply Haven recipe (theme + demo content).'
-  HAVEN_PATH=$(find vendor -type f -name "recipe.yml" -path "*/haven/*" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
-  if [ -n "$HAVEN_PATH" ]; then
-    echo "Found haven recipe at: $HAVEN_PATH"
-    time php web/core/scripts/drupal recipe "$HAVEN_PATH"
-  else
-    echo "Warning: haven recipe not found in vendor directory."
-  fi
+  echo 'Tell Automatic Updates about patches.'
+  drush -n cset --input-format=yaml package_manager.settings additional_trusted_composer_plugins '["cweagans/composer-patches"]'
+  time drush ev '\Drupal::moduleHandler()->invoke("automatic_updates", "modules_installed", [[], FALSE])'
 
   echo
   time drush cr
