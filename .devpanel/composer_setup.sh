@@ -3,9 +3,11 @@ set -eu -o pipefail
 cd $APP_ROOT
 
 # Create required composer.json and composer.lock files.
-composer create-project --no-install ${PROJECT:=drupal/cms}
-cp -r "${PROJECT#*/}"/* ./
-rm -rf "${PROJECT#*/}" AGENTS.md patches.lock.json
+# Use drupal/recommended-project (NOT drupal/cms) to avoid the RecipeKit
+# installer that requires interactive UI. We install haven recipe separately.
+composer create-project --no-install ${PROJECT:=drupal/recommended-project}:^11
+cp -r ${PROJECT#*/}/* ./
+rm -rf ${PROJECT#*/}
 
 # Programmatically fix Composer 2.2 allow-plugins to avoid errors.
 composer config --no-plugins allow-plugins.cweagans/composer-patches true
@@ -217,11 +219,11 @@ composer config repositories.codemirror '{
 }'
 composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpanel-haicao/devpanel_marketplace_bar.git"
 
-# Add Webform libraries and Composer Patches.
+# Add Drush, Webform libraries, Haven, and Composer Patches.
 composer require -n --no-update \
+    drush/drush \
     codemirror/codemirror \
     cweagans/composer-patches \
-    drupal/ai_provider_litellm \
     devpanel/devpanel_marketplace_bar:dev-main \
     drupal/haven \
     jquery/inputmask \

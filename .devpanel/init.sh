@@ -25,11 +25,7 @@ time sudo chmod 777 $APP_ROOT
 #== Composer install.
 echo
 if [ -f composer.json ]; then
-  if composer show --locked cweagans/composer-patches ^2 &> /dev/null; then
-    echo 'Update patches.lock.json.'
-    time composer prl
-    echo
-  fi
+  echo 'Composer update.'
 else
   echo 'Generate composer.json.'
   time source .devpanel/composer_setup.sh
@@ -38,9 +34,9 @@ fi
 time composer -n update --no-progress
 
 #== Create the private files directory.
-echo
-echo 'Create and set permissions for private files directory.'
 if [ ! -d private ]; then
+  echo
+  echo 'Create the private files directory.'
   time mkdir -p private
 fi
 time sudo chmod -R 777 private
@@ -72,42 +68,24 @@ fi
 if [ -f web/sites/default/settings.php ]; then
   time sudo chmod 666 web/sites/default/settings.php
 fi
-if [ -d assets ]; then
-  time sudo chmod -R 777 assets/
-fi
 
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Run the installer in a loop. Each invocation processes one install task
-  # (form submission or batch step). The loop continues until install_task
-  # state equals 'done', meaning ALL tasks are complete including recipe
-  # application and profile uninstall.
-  echo 'Install Drupal CMS with Haven template (this may take several minutes).'
-  INSTALL_COUNTER=0
-  while true; do
-    INSTALL_COUNTER=$((INSTALL_COUNTER + 1))
-    echo "  Install step $INSTALL_COUNTER..."
-    .devpanel/install 2>&1 || true
+  # Step 1: Install Drupal with minimal profile (fast, non-interactive).
+  echo 'Install Drupal (minimal profile).'
+  time drush -n si minimal --site-name='Drupal CMS Haven'
 
-    # Check if installation is complete.
-    TASK=$(drush sget install_task 2>/dev/null || echo "unknown")
-    if [ "$TASK" = "done" ]; then
-      echo "  Installation complete after $INSTALL_COUNTER steps."
-      break
-    fi
-
-    # Safety: prevent infinite loops.
-    if [ $INSTALL_COUNTER -ge 200 ]; then
-      echo "  Warning: Installation did not complete after $INSTALL_COUNTER steps (install_task=$TASK)."
-      break
-    fi
-  done
-
+  # Step 2: Apply the haven recipe (installs theme + demo content + dependencies).
   echo
-  echo 'Tell Automatic Updates about patches.'
-  drush -n cset --input-format=yaml package_manager.settings additional_trusted_composer_plugins '["cweagans/composer-patches"]'
-  time drush ev '\Drupal::moduleHandler()->invoke("automatic_updates", "modules_installed", [[], FALSE])'
+  echo 'Apply Haven recipe (theme + demo content).'
+  HAVEN_PATH=$(find vendor -type f -name "recipe.yml" -path "*/haven/*" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
+  if [ -n "$HAVEN_PATH" ]; then
+    echo "Found haven recipe at: $HAVEN_PATH"
+    time php web/core/scripts/drupal recipe "$HAVEN_PATH"
+  else
+    echo "Warning: haven recipe not found in vendor directory."
+  fi
 
   echo
   time drush cr
@@ -116,10 +94,14 @@ else
   time drush -n updb
 fi
 
+# ==============================================================================
+# SET UP MARKETPLACE BAR
+# ==============================================================================
 echo
 echo 'Enable DevPanel Marketplace Bar.'
 time drush -n en devpanel_marketplace_bar
 echo
+# ==============================================================================
 
 #== Warm up caches.
 echo
