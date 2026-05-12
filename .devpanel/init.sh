@@ -72,29 +72,43 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Step 1: Install Drupal with minimal profile (fast, non-interactive).
-  # This avoids the Drupal CMS interactive installer and redirects.
+  # Step 1: Install Drupal with minimal profile.
+  # We use minimal to avoid the Drupal CMS complex installer, but we use 
+  # the drupal/cms codebase so all recipes are available.
   echo 'Install Drupal (minimal profile)...'
   time drush -n si minimal --site-name='Drupal CMS Haven' --account-pass=admin
 
-  # Step 2: Apply the haven recipe (installs theme + demo content + dependencies).
+  # Step 2: Apply ALL recipes found in the Haven package.
+  # Usually, there is a main recipe.yml and a sub-recipe for demo content.
   echo
-  echo 'Apply Haven recipe (theme + demo content)...'
-  HAVEN_PATH=$(find vendor -type f -name "recipe.yml" -path "*/haven/*" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
-  if [ -n "$HAVEN_PATH" ]; then
-    echo "Found haven recipe at: $HAVEN_PATH"
-    time php web/core/scripts/drupal recipe "$HAVEN_PATH"
-  else
-    echo "Warning: haven recipe not found in vendor directory."
+  echo 'Searching for Haven recipes...'
+  # Find the main recipe first (at the root of the haven package).
+  MAIN_RECIPE=$(find vendor/drupal/haven -maxdepth 1 -name "recipe.yml")
+  if [ -n "$MAIN_RECIPE" ]; then
+    echo "Applying main Haven recipe: $MAIN_RECIPE"
+    time php web/core/scripts/drupal recipe "$(dirname "$MAIN_RECIPE")"
   fi
 
-  # Step 3: Ensure Haven theme is default and enabled.
+  # Find and apply any other recipes (like demo content) in subdirectories.
+  echo "Searching for sub-recipes (demo content, etc.)..."
+  find vendor/drupal/haven -mindepth 2 -name "recipe.yml" | while read -r RECIPE; do
+    echo "Applying Haven sub-recipe: $RECIPE"
+    time php web/core/scripts/drupal recipe "$(dirname "$RECIPE")"
+  done
+
+  # Step 3: Ensure Haven theme is default.
   echo
   echo 'Set Haven theme as default...'
   time drush -n theme:enable haven_theme || echo "Theme already enabled or failed to enable."
   time drush -n config:set system.theme default haven_theme
 
-  # Step 4: Explicitly mark installation as done to prevent redirects.
+  # Step 4: Set the Front Page.
+  # For Haven, the demo content usually creates a page at /home.
+  echo
+  echo 'Setting front page to /home...'
+  time drush -n config:set system.site page.front "/home"
+
+  # Step 5: Explicitly mark installation as done to bypass drupal/cms redirects.
   echo 'Marking installation as complete...'
   time drush sset install_task done
 

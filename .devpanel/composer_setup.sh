@@ -3,17 +3,19 @@ set -eu -o pipefail
 cd $APP_ROOT
 
 # Create required composer.json and composer.lock files.
-# Use drupal/recommended-project (Standard Drupal) to avoid the 
-# Drupal CMS interactive installer and redirect middleware.
-composer create-project --no-install ${PROJECT:=drupal/recommended-project}:^11
-cp -r ${PROJECT#*/}/* ./
-rm -rf ${PROJECT#*/}
+# Use drupal/cms as the base project to ensure all CMS recipes 
+# and modules (like CVA, AI, etc.) are available for Haven.
+composer create-project --no-install ${PROJECT:=drupal/cms}
+cp -r "${PROJECT#*/}"/* ./
+rm -rf "${PROJECT#*/}" AGENTS.md patches.lock.json
 
 # Programmatically fix Composer 2.2 allow-plugins to avoid errors.
 composer config --no-plugins allow-plugins.cweagans/composer-patches true
 
-# Scaffold settings.php.
+# Scaffold patches and settings.php.
 composer config -jm extra.drupal-scaffold.file-mapping '{
+    "patches.json": false,
+    "patches.lock.json": false,
     "[web-root]/sites/default/settings.php": {
         "path": "web/core/assets/scaffold/files/default.settings.php",
         "overwrite": false
@@ -22,9 +24,13 @@ composer config -jm extra.drupal-scaffold.file-mapping '{
 composer config scripts.post-drupal-scaffold-cmd \
     'cd web/sites/default && test -z "$(grep '\''include \$devpanel_settings;'\'' settings.php)" && patch -Np1 -r /dev/null < $APP_ROOT/.devpanel/drupal-settings.patch || :'
 
-# Allow beta/dev modules (required for Haven dependencies like Webform).
+# Set minimum stability to allow beta modules (required by Haven).
 composer config minimum-stability beta
 composer config prefer-stable true
+
+# Clear cache to avoid old SSH metadata.
+composer clear-cache
+composer config repositories.marketplace_bar_https vcs "https://github.com/devpanel-haicao/devpanel_marketplace_bar.git"
 
 # Add repositories for Webform libraries.
 composer config repositories.tippyjs '{
@@ -219,20 +225,13 @@ composer config repositories.codemirror '{
         "license": "MIT"
     }
 }'
-# Clear cache to avoid old SSH metadata.
-composer clear-cache
-composer config repositories.marketplace_bar_https vcs "https://github.com/devpanel-haicao/devpanel_marketplace_bar.git"
 
-# Add core dependencies, Drush, Haven, and Marketplace Bar.
-# We explicitly add drupal/cva and drupal/sdc_display to satisfy Haven's requirements.
+# Add Drush, Haven, and Marketplace Bar.
 composer require -n --no-update \
     drush/drush \
     cweagans/composer-patches \
     devpanel/devpanel_marketplace_bar:dev-main \
     drupal/haven \
-    drupal/cva \
-    drupal/sdc_display \
-    drupal/webform \
     codemirror/codemirror \
     jquery/inputmask \
     jquery/intl-tel-input \
