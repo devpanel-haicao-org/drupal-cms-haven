@@ -3,8 +3,7 @@ set -eu -o pipefail
 cd $APP_ROOT
 
 # Create required composer.json and composer.lock files.
-# Use drupal/cms as the base project to ensure all CMS recipes 
-# and modules (like CVA, AI, etc.) are available for Haven.
+# Use drupal/cms as the base project.
 composer create-project --no-install ${PROJECT:=drupal/cms}
 cp -r "${PROJECT#*/}"/* ./
 rm -rf "${PROJECT#*/}" AGENTS.md patches.lock.json
@@ -226,12 +225,15 @@ composer config repositories.codemirror '{
     }
 }'
 
-# Add Drush, Haven, and Marketplace Bar.
+# Add Drush, Haven, and dependencies.
+# We explicitly re-add CVA and SDC_DISPLAY to ensure they are in the vendor folder.
 composer require -n --no-update \
     drush/drush \
     cweagans/composer-patches \
     devpanel/devpanel_marketplace_bar:dev-main \
     drupal/haven \
+    drupal/cva \
+    drupal/sdc_display \
     codemirror/codemirror \
     jquery/inputmask \
     jquery/intl-tel-input \
