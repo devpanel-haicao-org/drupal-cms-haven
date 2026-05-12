@@ -3,27 +3,33 @@
 
 /**
  * @file
- * Script to apply required recipes without completing installation.
+ * Script to install Drupal CMS with Haven template applied.
  *
- * This allows users to experience an interactive installation with less
- * waiting.
+ * Based on the drupal_cms template install script, but with recipe
+ * application ENABLED (not commented out) so the full installation
+ * completes in one pass without requiring the UI.
  */
 
 use Drupal\RecipeKit\Installer\Hooks;
 
 $_GET['rewrite'] = 'ok';
-$_GET['site_name'] = '1';
+$_GET['site_name'] = 'Drupal CMS Haven';
 $_GET['template'] = '1';
+// Tell RecipeKit to apply the haven recipe.
+$_GET['recipes'] = ['drupal/haven'];
 
 register_shutdown_function('_install_drupal_cms_profile_modules');
 
 function _install_drupal_cms_profile_modules() {
   global $install_state;
   if ($install_state['base_system_verified']) {
-/*    batch_set(Hooks::applyRecipes($install_state));
+    // Ensure haven is in the recipes list.
+    $install_state['parameters']['recipes'] = ['drupal/haven'];
+
+    batch_set(Hooks::applyRecipes($install_state));
     $batch = &batch_get();
     $batch['progressive'] = FALSE;
-    batch_process();*/
+    batch_process();
     \Drupal::state()->set('recipe_installer_kit.profile_modules_installed', TRUE);
   }
 }

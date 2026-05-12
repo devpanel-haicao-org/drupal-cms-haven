@@ -17,10 +17,7 @@ echo
 echo Remove root-owned files.
 time sudo rm -rf lost+found
 
-# =================================================================
-# 1. THÊM MỚI: Cấp quyền cho thư mục gốc (Chạy ngay từ đầu)
-# Giúp Web Server và Composer có quyền tạo file/thư mục thoải mái
-# =================================================================
+#== Set permissions for application root.
 echo
 echo 'Set permissions for application root.'
 time sudo chmod 777 $APP_ROOT
@@ -40,10 +37,7 @@ else
 fi
 time composer -n update --no-progress
 
-# =================================================================
-# 2. THAY ĐỔI: Create & chmod the private files directory.
-# Gom lệnh mkdir và chmod của bạn vào chung một khối logic
-# =================================================================
+#== Create the private files directory.
 echo
 echo 'Create and set permissions for private files directory.'
 if [ ! -d private ]; then
@@ -65,64 +59,28 @@ if [ ! -f .devpanel/salt.txt ]; then
   time openssl rand -hex 32 > .devpanel/salt.txt
 fi
 
-# =================================================================
-# 3. THÊM MỚI: Chuẩn bị quyền files và settings.php TRƯỚC KHI cài đặt
-# =================================================================
+#== Set permissions for Drupal installation.
 echo
-echo 'Set permissions for Drupal installation (files, settings, assets).'
-
-# A. Đảm bảo thư mục files tồn tại rồi mới chmod 777
+echo 'Set permissions for Drupal installation.'
 if [ ! -d web/sites/default/files ]; then
   time mkdir -p web/sites/default/files
 fi
 time sudo chmod -R 777 web/sites/default/files/
-
-# B. Đảm bảo settings.php tồn tại (copy từ file default) rồi mới chmod 666
 if [ ! -f web/sites/default/settings.php ] && [ -f web/sites/default/default.settings.php ]; then
   time cp web/sites/default/default.settings.php web/sites/default/settings.php
 fi
 if [ -f web/sites/default/settings.php ]; then
   time sudo chmod 666 web/sites/default/settings.php
 fi
-
-# C. (Bonus) Cấp quyền cho thư mục assets của Drupal CMS Starshot để tránh lỗi cũ
 if [ -d assets ]; then
   time sudo chmod -R 777 assets/
 fi
-# =================================================================
 
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Step 1: Install base system (same as drupal-cms-alert).
-  echo 'Install Drupal CMS base system.'
-  while [ -z "$(drush sget recipe_installer_kit.profile_modules_installed 2> /dev/null)" ]; do
-    time .devpanel/install
-  done
-  drush sdel recipe_installer_kit.profile_modules_installed
-
-  # Step 2: Find contrib recipes path using Composer (avoids drush crp issues).
-  echo
-  CONTRIB_RECIPES_PATH=$(php -r "
-    require '${APP_ROOT}/vendor/autoload.php';
-    \$names = Composer\InstalledVersions::getInstalledPackagesByType('drupal-recipe');
-    echo realpath(dirname(Composer\InstalledVersions::getInstallPath(reset(\$names))));
-  ")
-  echo "Contrib recipes path: $CONTRIB_RECIPES_PATH"
-
-  # Step 3: Apply drupal_cms_starter recipe (sets up /home, roles, admin, etc.).
-  echo
-  echo 'Apply drupal_cms_starter recipe.'
-  time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/drupal_cms_starter"
-
-  # Step 4: Apply haven recipe (theme + demo content).
-  echo
-  echo 'Apply haven recipe.'
-  time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
-
-  # Step 5: Finalize installation.
-  drush -n cset system.site name 'Drupal CMS Haven'
-  drush sset install_task done
+  echo 'Install Drupal CMS with Haven template (this may take several minutes).'
+  time .devpanel/install
 
   echo
   echo 'Tell Automatic Updates about patches.'
