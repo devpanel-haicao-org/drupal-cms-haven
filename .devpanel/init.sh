@@ -94,14 +94,18 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Install Drupal CMS with Haven template.
-  # .devpanel/install runs the full drupal_cms installation profile and
-  # applies the haven recipe via GET params. When complete, Drupal sets
-  # install_task='done' automatically.
-  echo 'Install Drupal CMS with Haven template.'
-  while [ "$(drush sget install_task 2>/dev/null)" != "done" ]; do
-    time .devpanel/install
-  done
+  echo 'Install Drupal CMS.'
+  time drush si drupal_cms -y --account-pass=admin --site-name='Drupal CMS Haven'
+
+  echo
+  echo 'Apply Haven recipe (theme + demo content).'
+  CONTRIB_RECIPES_PATH=$(drush crp)
+  if [ -d "$CONTRIB_RECIPES_PATH/haven" ]; then
+    echo "Found haven recipe at: $CONTRIB_RECIPES_PATH/haven"
+    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
+  else
+    echo "Warning: haven recipe not found at $CONTRIB_RECIPES_PATH/haven"
+  fi
 
   echo
   echo 'Tell Automatic Updates about patches.'
