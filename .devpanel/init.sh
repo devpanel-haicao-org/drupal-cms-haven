@@ -94,41 +94,14 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Step 1: Install the drupal_cms base system using the install script.
-  # This runs the drupal_cms installation profile which sets up all
-  # foundation modules. Recipe application is skipped (handled below).
-  echo 'Install Drupal CMS base system.'
+  # Install Drupal CMS with Haven template.
+  # The install script runs the drupal_cms profile and applies all recipes
+  # (including drupal_cms_starter + haven) in one step.
+  echo 'Install Drupal CMS with Haven template.'
   while [ -z "$(drush sget recipe_installer_kit.profile_modules_installed 2> /dev/null)" ]; do
     time .devpanel/install
   done
   drush sdel recipe_installer_kit.profile_modules_installed
-
-  # Step 2: Apply recipes programmatically (replaces the UI template picker).
-  # Get the contrib recipes path using the custom drush command.
-  CONTRIB_RECIPES_PATH=$(drush crp)
-  echo "Contrib recipes path: $CONTRIB_RECIPES_PATH"
-
-  echo
-  echo 'Apply Drupal CMS Starter recipe.'
-  if [ -d "$CONTRIB_RECIPES_PATH/drupal_cms_starter" ]; then
-    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/drupal_cms_starter"
-  else
-    echo "Warning: drupal_cms_starter recipe not found at $CONTRIB_RECIPES_PATH/drupal_cms_starter"
-  fi
-
-  echo
-  echo 'Apply Haven recipe (theme + demo content).'
-  if [ -d "$CONTRIB_RECIPES_PATH/haven" ]; then
-    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
-  else
-    echo "Warning: haven recipe not found at $CONTRIB_RECIPES_PATH/haven"
-  fi
-
-  drush -n cset system.site name 'Drupal CMS Haven'
-
-  # Mark installation as complete so the install redirect middleware
-  # (patch #3495988) does not redirect all HTML requests to /core/install.php.
-  drush sset install_task done
 
   echo
   echo 'Tell Automatic Updates about patches.'
