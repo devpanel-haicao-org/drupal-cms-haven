@@ -219,6 +219,10 @@ composer config repositories.codemirror '{
 }'
 composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpanel-haicao/devpanel_marketplace_bar.git"
 
+# Set minimum stability to allow beta modules (required by drupal/haven for webform).
+composer config minimum-stability beta
+composer config prefer-stable true
+
 # Add Drush, Webform libraries, Haven, and Composer Patches.
 composer require -n --no-update \
     drush/drush \
