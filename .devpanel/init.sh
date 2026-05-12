@@ -55,10 +55,18 @@ if [ -z "$(drush status --field=db-status)" ]; then
   echo 'Install Drupal.'
   time drush -n si minimal
   
+  echo 'Apply Drupal CMS Starter recipe.'
+  STARTER_PATH=$(find . -maxdepth 6 -type d -name "drupal_cms_starter" | grep "recipes/.*/drupal_cms_starter" | head -n 1)
+  if [ -n "$STARTER_PATH" ]; then
+    time php web/core/scripts/drupal recipe "$STARTER_PATH"
+  else
+    echo "Warning: drupal_cms_starter recipe not found!"
+  fi
+
   echo 'Apply haven recipe to install theme and demo content.'
-  RECIPE_PATH=$(find . -maxdepth 4 -type d -name "haven" | grep "recipes/.*/haven" | head -n 1)
+  RECIPE_PATH=$(find . -maxdepth 6 -type d -name "haven" | grep "recipes/.*/haven" | head -n 1)
   if [ -n "$RECIPE_PATH" ]; then
-    time php web/core/scripts/drupal recipe $RECIPE_PATH
+    time php web/core/scripts/drupal recipe "$RECIPE_PATH"
   else
     echo "Warning: haven recipe not found!"
   fi
