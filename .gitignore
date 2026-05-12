@@ -1,0 +1,17 @@
+/.devpanel/dumps/
+/.devpanel/modules/alert-bar/data.json
+/.editorconfig
+/.gitattributes
+/.vscode/
+/composer.json
+/composer.lock
+/config/
+/LICENSE.txt
+/logs/
+/packages.json
+/patches.lock.json
+/private/
+/README.md
+/recipes/
+/vendor/
+/web/
