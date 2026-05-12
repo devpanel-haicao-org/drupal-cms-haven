@@ -18,6 +18,13 @@ if ! command -v npm >/dev/null 2>&1; then
   apt-get install -y jq nano npm
 fi
 
+# Enable AVIF support in GD extension if not already enabled.
+if [ -z "$(php --ri gd | grep AVIF)" ]; then
+  apt-get install -y libavif-dev
+  docker-php-ext-configure gd --with-avif --with-freetype --with-jpeg --with-webp
+  docker-php-ext-install gd
+fi
+
 PECL_UPDATED=false
 # Install APCU extension. Bypass question about enabling internal debugging.
 if ! php --ri apcu > /dev/null 2>&1; then
@@ -39,7 +46,6 @@ fi
 # Enable JIT if not already enabled, as it can improve performance for Drupal.
 if php --ri 'Zend OPcache' | grep 'opcache.enable => On' > /dev/null 2>&1; then
   echo 'opcache.jit=tracing' > /usr/local/etc/php/conf.d/opcache.ini \
-    && echo 'opcache.enable_cli=on' >> /usr/local/etc/php/conf.d/opcache.ini \
     && PECL_UPDATED=true
 fi
 # Reload Apache if it's running.

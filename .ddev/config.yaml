@@ -1,6 +1,6 @@
 type: drupal11
 docroot: web
-php_version: "8.3"
+php_version: "8.5"
 webserver_type: apache-fpm
 xdebug_enabled: false
 additional_hostnames: []
@@ -27,6 +27,7 @@ web_environment:
     - DB_USER=db
     - DB_PASSWORD=db
     - DB_NAME=db
-    - DP_APP_ID=drupal-11
+    - DP_APP_ID=drupal_cms
     - DB_DRIVER=mysql
+    - DP_AI_VIRTUAL_KEY=
 corepack_enable: false

@@ -96,21 +96,25 @@ echo
 if [ -z "$(drush status --field=db-status)" ]; then
   echo 'Install Drupal base system.'
   time drush -n si minimal
-  
+
+  # Get the contrib recipes path using the custom drush command.
+  CONTRIB_RECIPES_PATH=$(drush crp)
+  echo "Contrib recipes path: $CONTRIB_RECIPES_PATH"
+
+  echo
   echo 'Apply Drupal CMS Starter recipe.'
-  STARTER_PATH=$(find . -maxdepth 6 -type d -name "drupal_cms_starter" | grep "recipes/.*/drupal_cms_starter" | head -n 1)
-  if [ -n "$STARTER_PATH" ]; then
-    time php web/core/scripts/drupal recipe "$STARTER_PATH"
+  if [ -d "$CONTRIB_RECIPES_PATH/drupal_cms_starter" ]; then
+    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/drupal_cms_starter"
   else
-    echo "Warning: drupal_cms_starter recipe not found!"
+    echo "Warning: drupal_cms_starter recipe not found at $CONTRIB_RECIPES_PATH/drupal_cms_starter"
   fi
 
-  echo 'Apply haven recipe to install theme and demo content.'
-  RECIPE_PATH=$(find . -maxdepth 6 -type d -name "haven" | grep "recipes/.*/haven" | head -n 1)
-  if [ -n "$RECIPE_PATH" ]; then
-    time php web/core/scripts/drupal recipe "$RECIPE_PATH"
+  echo
+  echo 'Apply Haven recipe (theme + demo content).'
+  if [ -d "$CONTRIB_RECIPES_PATH/haven" ]; then
+    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
   else
-    echo "Warning: haven recipe not found!"
+    echo "Warning: haven recipe not found at $CONTRIB_RECIPES_PATH/haven"
   fi
 
   drush -n cset system.site name 'Drupal CMS Haven'

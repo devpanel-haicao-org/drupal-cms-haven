@@ -3,4 +3,4 @@ command:
     install:
       options:
         account-pass: admin
-        site-name: Drupal 11
+        site-name: Drupal CMS Haven
