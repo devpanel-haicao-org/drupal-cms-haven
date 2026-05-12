@@ -38,3 +38,4 @@ drush cron
 echo
 echo 'Populate caches.'
 drush cache:warm &> /dev/null || :
+$APP_ROOT/.devpanel/warm

@@ -11,35 +11,36 @@ exec > >(tee $LOG_FILE) 2>&1
 TIMEFORMAT=%lR
 # For faster performance, don't audit dependencies automatically.
 export COMPOSER_NO_AUDIT=1
+# For faster performance, don't install dev dependencies.
+export COMPOSER_NO_DEV=1
 
 #== Remove root-owned files.
 echo
 echo Remove root-owned files.
 time sudo rm -rf lost+found
 
-#== Set permissions for application root.
-echo
-echo 'Set permissions for application root.'
-time sudo chmod 777 $APP_ROOT
-
 #== Composer install.
 echo
 if [ -f composer.json ]; then
-  echo 'Composer update.'
+  if composer show --locked cweagans/composer-patches ^2 &> /dev/null; then
+    echo 'Update patches.lock.json.'
+    time composer prl
+    echo
+  fi
 else
   echo 'Generate composer.json.'
   time source .devpanel/composer_setup.sh
   echo
 fi
-time composer -n update --no-progress
+# If update fails, change it to install.
+time composer -n update --no-dev --no-progress
 
 #== Create the private files directory.
 if [ ! -d private ]; then
   echo
   echo 'Create the private files directory.'
-  time mkdir -p private
+  time mkdir private
 fi
-time sudo chmod -R 777 private
 
 #== Create the config sync directory.
 if [ ! -d config/sync ]; then
@@ -48,85 +49,75 @@ if [ ! -d config/sync ]; then
   time mkdir -p config/sync
 fi
 
-#== Generate hash salt.
-if [ ! -f .devpanel/salt.txt ]; then
-  echo
-  echo 'Generate hash salt.'
-  time openssl rand -hex 32 > .devpanel/salt.txt
-fi
-
-#== Set permissions for Drupal installation.
-echo
-echo 'Set permissions for Drupal installation.'
-if [ ! -d web/sites/default/files ]; then
-  time mkdir -p web/sites/default/files
-fi
-time sudo chmod -R 777 web/sites/default/files/
-if [ ! -f web/sites/default/settings.php ] && [ -f web/sites/default/default.settings.php ]; then
-  time cp web/sites/default/default.settings.php web/sites/default/settings.php
-fi
-if [ -f web/sites/default/settings.php ]; then
-  time sudo chmod 666 web/sites/default/settings.php
-fi
-
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  # Step 1: Install Drupal with minimal profile.
-  echo 'Install Drupal (minimal profile)...'
-  time drush -n si minimal --site-name='Drupal CMS Haven' --account-pass=admin
-
-  # Step 2: MANUALLY ENABLE CRITICAL MODULES.
-  # This bypasses the bug in the Drupal Recipe runner where it fails to enable 
-  # dependencies like CVA.
-  echo
-  echo 'Manually enabling critical modules (CVA, SDC, etc.)...'
-  time drush -n en cva sdc_display webform media media_library path_alias responsive_image
-
-  # Step 3: Apply ALL recipes found in the Haven package.
-  echo
-  echo 'Searching and applying Haven recipes...'
-  
-  # Find the main recipe first.
-  MAIN_RECIPE=$(find vendor/drupal/haven -maxdepth 1 -name "recipe.yml")
-  if [ -n "$MAIN_RECIPE" ]; then
-    echo "Applying main Haven recipe: $MAIN_RECIPE"
-    time php web/core/scripts/drupal recipe "$(dirname "$MAIN_RECIPE")"
-  fi
-
-  # Find and apply sub-recipes (demo content, etc.).
-  find vendor/drupal/haven -mindepth 2 -name "recipe.yml" | while read -r RECIPE; do
-    echo "Applying Haven sub-recipe: $RECIPE"
-    time php web/core/scripts/drupal recipe "$(dirname "$RECIPE")"
-  done
-
-  # Step 4: Finalize theme and front page.
-  echo
-  echo 'Set Haven theme as default...'
-  time drush -n theme:enable haven_theme || echo "Theme already enabled or failed to enable."
-  time drush -n config:set system.theme default haven_theme
-
-  echo 'Setting front page to /home...'
-  time drush -n config:set system.site page.front "/home"
-
-  # Step 5: Mark installation as complete.
-  echo 'Marking installation as complete...'
-  time drush sset install_task done
-
-  echo
-  time drush cr
+  echo 'Install Drupal.'
+  time drush -n si
 else
   echo 'Update database.'
   time drush -n updb
 fi
 
 # ==============================================================================
-# SET UP MARKETPLACE BAR
+# APPLY HAVEN RECIPE & CONFIGURE THEME
 # ==============================================================================
 echo
-echo 'Enable DevPanel Marketplace Bar.'
-time drush -n en devpanel_marketplace_bar
+echo '=== Setting up Haven Theme & Demo Content ==='
+
+# Find the Haven recipe path
+HAVEN_PATH=$(find web/themes web/recipes recipes web/profiles web/modules -maxdepth 3 -type d -name "haven" 2>/dev/null | head -n 1)
+
+if [ -n "$HAVEN_PATH" ]; then
+  echo "Found Haven at: $HAVEN_PATH"
+
+  # Apply Haven base recipe if recipe.yml exists
+  if [ -f "$HAVEN_PATH/recipe.yml" ]; then
+    echo 'Applying Haven base recipe...'
+    cd $APP_ROOT/web
+    php core/scripts/drupal recipe "$APP_ROOT/$HAVEN_PATH"
+    cd $APP_ROOT
+  fi
+
+  # Find and apply Demo Content recipe (sub-directory with demo/content in name)
+  DEMO_RECIPE_PATH=$(find "$HAVEN_PATH" -maxdepth 2 -type d \( -iname "*demo*" -o -iname "*content*" \) 2>/dev/null | head -n 1)
+
+  if [ -n "$DEMO_RECIPE_PATH" ] && [ -f "$DEMO_RECIPE_PATH/recipe.yml" ]; then
+    echo "Found Demo Content recipe at: $DEMO_RECIPE_PATH"
+    echo 'Applying Haven Demo Content recipe...'
+    cd $APP_ROOT/web
+    php core/scripts/drupal recipe "$APP_ROOT/$DEMO_RECIPE_PATH"
+    cd $APP_ROOT
+  fi
+else
+  echo 'Haven recipe directory not found. Applying recipe from vendor or modules...'
+  # Try to find haven in vendor or other locations
+  HAVEN_VENDOR=$(find vendor -maxdepth 4 -type d -name "haven" 2>/dev/null | head -n 1)
+  if [ -n "$HAVEN_VENDOR" ] && [ -f "$HAVEN_VENDOR/recipe.yml" ]; then
+    echo "Found Haven at: $HAVEN_VENDOR"
+    cd $APP_ROOT/web
+    php core/scripts/drupal recipe "$APP_ROOT/$HAVEN_VENDOR"
+    cd $APP_ROOT
+  fi
+fi
+
+# Install and set Haven theme as default
+echo 'Installing Haven theme...'
+drush -n theme:install haven_theme 2>/dev/null || echo 'Haven theme may already be installed.'
+
+# Set Haven as the default theme
+echo 'Setting Haven theme as default...'
+drush -n config-set system.theme default haven_theme
+
+# Install and set Claro as admin theme
+echo 'Installing Claro admin theme...'
+drush -n theme:install claro 2>/dev/null || echo 'Claro theme may already be installed.'
+drush -n config-set system.theme admin claro
+drush -n config-set node.settings use_admin_theme 1
+
+echo '=== Haven Theme setup complete ==='
 echo
+
 # ==============================================================================
 
 #== Warm up caches.
@@ -136,6 +127,7 @@ time drush cron
 echo
 echo 'Populate caches.'
 time drush cache:warm &> /dev/null || :
+time .devpanel/warm
 
 #== Finish measuring script time.
 INIT_DURATION=$SECONDS

@@ -8,9 +8,14 @@ Files in the `.devpanel` directory control DevPanel deployment for this app.
   /scripts/apache-start.sh before Apache starts.
 - [`init-container.sh`](init-container.sh): Checks for a database dump and
   imports it.
-- [`init.sh`](init.sh): Performs additional startup tasks. Supporting files:
+- [`init.sh`](init.sh): Performs additional startup tasks, including:
+  - Installing Haven theme as the default theme
+  - Applying Haven recipe and demo content
+  - Setting Claro as admin theme
+  Supporting files:
   - [`composer_setup.sh`](composer_setup.sh): Generates composer.json and
-    composer.lock files. Not needed if you supply these files yourself.
+    composer.lock files. Installs Haven theme and default_content. Not needed
+    if you supply these files yourself.
   - [`settings.devpanel.php`](settings.devpanel.php): Settings for running
     Drupal as a DevPanel app.
   - [`drupal-settings.patch`](drupal-settings.patch): Patch for settings.php

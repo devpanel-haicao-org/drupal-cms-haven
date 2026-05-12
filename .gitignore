@@ -1,13 +1,10 @@
 /.devpanel/dumps/
-/.devpanel/salt.txt
 /.editorconfig
 /.gitattributes
 /.vscode/
 /composer.json
 /composer.lock
 /config/
-/CONTRIBUTING.md
-/launch-drupal-cms.sh
 /LICENSE.txt
 /logs/
 /packages.json

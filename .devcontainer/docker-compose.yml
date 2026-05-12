@@ -3,9 +3,9 @@ include:
 
 services:
   app:
-    image: drupalforge/drupal_cms:latest
+    image: devpanel/php:8.5-base-rc
     environment:
-      DP_APP_ID: 'drupal_cms'
+      DP_APP_ID: 'drupal-cms-haven'
       APP_ROOT: '/var/www/html'        
       WEB_ROOT: '/var/www/html/web'
       # Devcontainer-only unzip defaults for virtiofs metadata compatibility.
