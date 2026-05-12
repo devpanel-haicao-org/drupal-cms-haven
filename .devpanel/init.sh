@@ -95,13 +95,13 @@ fi
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
   # Install Drupal CMS with Haven template.
-  # The install script runs the drupal_cms profile and applies all recipes
-  # (including drupal_cms_starter + haven) in one step.
+  # .devpanel/install runs the full drupal_cms installation profile and
+  # applies the haven recipe via GET params. When complete, Drupal sets
+  # install_task='done' automatically.
   echo 'Install Drupal CMS with Haven template.'
-  while [ -z "$(drush sget recipe_installer_kit.profile_modules_installed 2> /dev/null)" ]; do
+  while [ "$(drush sget install_task 2>/dev/null)" != "done" ]; do
     time .devpanel/install
   done
-  drush sdel recipe_installer_kit.profile_modules_installed
 
   echo
   echo 'Tell Automatic Updates about patches.'

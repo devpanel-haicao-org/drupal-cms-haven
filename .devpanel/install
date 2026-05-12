@@ -8,30 +8,18 @@
  * This runs the full drupal_cms installation profile and applies
  * all required recipes including the Haven theme and demo content,
  * without requiring the interactive UI installer.
+ *
+ * Based on Hooks::applyRecipes() source: install_state['parameters']['recipes']
+ * is merged from GET params. The package name must be the full Composer name.
  */
 
-use Drupal\RecipeKit\Installer\Hooks;
-
+// Inject the haven recipe via GET parameters.
+// Hooks::applyRecipes() reads: $install_state['parameters']['recipes']
+// which comes from GET params processed by install.php before any task runs.
 $_GET['rewrite'] = 'ok';
 $_GET['site_name'] = 'Drupal CMS Haven';
-$_GET['template'] = 'haven';
-
-register_shutdown_function('_install_drupal_cms_profile_modules');
-
-function _install_drupal_cms_profile_modules() {
-  global $install_state;
-  if ($install_state['base_system_verified']) {
-    // Inject the haven recipe into install_state so RecipeKit applies it.
-    $install_state['parameters']['recipes'] = ['haven'];
-
-    // Apply all recipes (required + haven).
-    batch_set(Hooks::applyRecipes($install_state));
-    $batch = &batch_get();
-    $batch['progressive'] = FALSE;
-    batch_process();
-    \Drupal::state()->set('recipe_installer_kit.profile_modules_installed', TRUE);
-  }
-}
+// The 'recipes' parameter must use the full Composer package name.
+$_GET['recipes'] = ['drupal/haven'];
 
 chdir(dirname(__DIR__) . '/web/core');
 ob_start(fn($buffer, $phase) => TRUE, 1);
