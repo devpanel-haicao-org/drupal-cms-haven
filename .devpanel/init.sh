@@ -79,8 +79,30 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
+  # Run the installer in a loop. Each invocation processes one install task
+  # (form submission or batch step). The loop continues until install_task
+  # state equals 'done', meaning ALL tasks are complete including recipe
+  # application and profile uninstall.
   echo 'Install Drupal CMS with Haven template (this may take several minutes).'
-  time .devpanel/install
+  INSTALL_COUNTER=0
+  while true; do
+    INSTALL_COUNTER=$((INSTALL_COUNTER + 1))
+    echo "  Install step $INSTALL_COUNTER..."
+    .devpanel/install 2>&1 || true
+
+    # Check if installation is complete.
+    TASK=$(drush sget install_task 2>/dev/null || echo "unknown")
+    if [ "$TASK" = "done" ]; then
+      echo "  Installation complete after $INSTALL_COUNTER steps."
+      break
+    fi
+
+    # Safety: prevent infinite loops.
+    if [ $INSTALL_COUNTER -ge 200 ]; then
+      echo "  Warning: Installation did not complete after $INSTALL_COUNTER steps (install_task=$TASK)."
+      break
+    fi
+  done
 
   echo
   echo 'Tell Automatic Updates about patches.'

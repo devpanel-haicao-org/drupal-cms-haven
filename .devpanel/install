@@ -3,36 +3,21 @@
 
 /**
  * @file
- * Script to install Drupal CMS with Haven template applied.
+ * Script to run one step of the Drupal CMS installation with Haven template.
  *
- * Based on the drupal_cms template install script, but with recipe
- * application ENABLED (not commented out) so the full installation
- * completes in one pass without requiring the UI.
+ * Each invocation processes one install task or batch step.
+ * Must be called in a loop until install_task state equals 'done'.
+ *
+ * No shutdown function is used - install.php handles everything naturally,
+ * processing one task per invocation in interactive-simulation mode.
  */
 
-use Drupal\RecipeKit\Installer\Hooks;
-
+// Pre-fill all installer forms via GET parameters.
 $_GET['rewrite'] = 'ok';
 $_GET['site_name'] = 'Drupal CMS Haven';
 $_GET['template'] = '1';
-// Tell RecipeKit to apply the haven recipe.
+// Tell RecipeKit which recipes to apply (Composer package names).
 $_GET['recipes'] = ['drupal/haven'];
-
-register_shutdown_function('_install_drupal_cms_profile_modules');
-
-function _install_drupal_cms_profile_modules() {
-  global $install_state;
-  if ($install_state['base_system_verified']) {
-    // Ensure haven is in the recipes list.
-    $install_state['parameters']['recipes'] = ['drupal/haven'];
-
-    batch_set(Hooks::applyRecipes($install_state));
-    $batch = &batch_get();
-    $batch['progressive'] = FALSE;
-    batch_process();
-    \Drupal::state()->set('recipe_installer_kit.profile_modules_installed', TRUE);
-  }
-}
 
 chdir(dirname(__DIR__) . '/web/core');
 ob_start(fn($buffer, $phase) => TRUE, 1);
