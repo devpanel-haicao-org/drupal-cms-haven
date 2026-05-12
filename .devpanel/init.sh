@@ -94,18 +94,35 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(drush status --field=db-status)" ]; then
-  echo 'Install Drupal CMS.'
-  time drush si drupal_cms -y --account-pass=admin --site-name='Drupal CMS Haven'
+  # Step 1: Install base system (same as drupal-cms-alert).
+  echo 'Install Drupal CMS base system.'
+  while [ -z "$(drush sget recipe_installer_kit.profile_modules_installed 2> /dev/null)" ]; do
+    time .devpanel/install
+  done
+  drush sdel recipe_installer_kit.profile_modules_installed
 
+  # Step 2: Find contrib recipes path using Composer (avoids drush crp issues).
   echo
-  echo 'Apply Haven recipe (theme + demo content).'
-  CONTRIB_RECIPES_PATH=$(drush crp)
-  if [ -d "$CONTRIB_RECIPES_PATH/haven" ]; then
-    echo "Found haven recipe at: $CONTRIB_RECIPES_PATH/haven"
-    time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
-  else
-    echo "Warning: haven recipe not found at $CONTRIB_RECIPES_PATH/haven"
-  fi
+  CONTRIB_RECIPES_PATH=$(php -r "
+    require '${APP_ROOT}/vendor/autoload.php';
+    \$names = Composer\InstalledVersions::getInstalledPackagesByType('drupal-recipe');
+    echo realpath(dirname(Composer\InstalledVersions::getInstallPath(reset(\$names))));
+  ")
+  echo "Contrib recipes path: $CONTRIB_RECIPES_PATH"
+
+  # Step 3: Apply drupal_cms_starter recipe (sets up /home, roles, admin, etc.).
+  echo
+  echo 'Apply drupal_cms_starter recipe.'
+  time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/drupal_cms_starter"
+
+  # Step 4: Apply haven recipe (theme + demo content).
+  echo
+  echo 'Apply haven recipe.'
+  time php web/core/scripts/drupal recipe "$CONTRIB_RECIPES_PATH/haven"
+
+  # Step 5: Finalize installation.
+  drush -n cset system.site name 'Drupal CMS Haven'
+  drush sset install_task done
 
   echo
   echo 'Tell Automatic Updates about patches.'
