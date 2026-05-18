@@ -33,6 +33,17 @@ fi
 # If update fails, change it to install.
 time composer -n update --no-progress
 
+#== Create and set permissions for public files directory.
+if [ ! -d web/sites/default/files ]; then
+  echo
+  echo 'Create the public files directory.'
+  time mkdir -p web/sites/default/files
+fi
+
+echo 'Set permissions for public files directory.'
+time sudo chown -R www:www-data web/sites/default/files
+time sudo chmod -R 775 web/sites/default/files
+
 #== Create the private files directory.
 if [ ! -d private ]; then
   echo
@@ -42,7 +53,7 @@ fi
 
 # Update ownership and read/write permissions for the private directory.
 echo 'Set permissions for private directory.'
-time sudo chown -R www-data:www-data private
+time sudo chown -R www:www-data private
 time sudo chmod -R 775 private
 
 #== Create the config sync directory.
