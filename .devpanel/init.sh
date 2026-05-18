@@ -40,6 +40,11 @@ if [ ! -d private ]; then
   time mkdir private
 fi
 
+# Update ownership and read/write permissions for the private directory.
+echo 'Set permissions for private directory.'
+time sudo chown -R www-data:www-data private
+time sudo chmod -R 775 private
+
 #== Create the config sync directory.
 if [ ! -d config/sync ]; then
   echo
