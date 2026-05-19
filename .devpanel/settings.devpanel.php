@@ -22,3 +22,4 @@ if (!empty($realpath)) {
   $settings['file_private_path'] = $realpath;
 }
 $settings['trusted_host_patterns'][] = getenv('DP_HOSTNAME') ?: '.*';
+$settings['webhook_secret_key'] = getenv('DP_APP_ID');
