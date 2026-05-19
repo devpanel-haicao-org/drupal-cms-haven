@@ -214,12 +214,12 @@ composer config repositories.codemirror '{
 }'
 
 # Add repository for DevPanel Marketplace Bar.
-composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpanel-haicao/devpanel_marketplace_bar.git"
+composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpanel-haicao/devpanel_marketplace_bar_v2.git"
 
 # Add Webform libraries.
 composer require -n --no-update \
     codemirror/codemirror \
-    devpanel/devpanel_marketplace_bar:dev-main \
+    devpanel/devpanel_marketplace_bar_v2:dev-main \
     jquery/inputmask \
     jquery/intl-tel-input \
     jquery/rateit \
