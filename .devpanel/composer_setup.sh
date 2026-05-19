@@ -219,7 +219,7 @@ composer config repositories.devpanel_marketplace_bar vcs "git@github.com:devpan
 # Add Webform libraries.
 composer require -n --no-update \
     codemirror/codemirror \
-    devpanel/devpanel_marketplace_bar_v2:dev-main \
+    devpanel/devpanel_marketplace_bar:dev-main \
     jquery/inputmask \
     jquery/intl-tel-input \
     jquery/rateit \
