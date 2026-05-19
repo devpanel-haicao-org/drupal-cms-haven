@@ -62,7 +62,7 @@ if [ -z "$(drush status --field=db-status)" ]; then
 
   echo
   echo 'Enable DevPanel Marketplace Bar.'
-  time drush -n en devpanel_marketplace_bar_v2
+  time drush -n en devpanel_marketplace_bar
 
   echo
   time drush cr
